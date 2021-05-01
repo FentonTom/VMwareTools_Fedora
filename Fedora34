@@ -1,0 +1,41 @@
+#!/bin/bash
+## script to install VMware tools on Fedora 34
+## 
+
+cd /tmp
+## install the tools need to build open-vm-tools
+yum install -y git automake make libtool gcc gcc-c++ libmspack-devel glib2-devel pam-devel openssl-devel libxml2-devel xmlsec1-devel libX11-devel libXext-devel libXinerama-devel libXi-devel libXrender libXrandr-devel libXtst-devel gdk-pixbuf2-xlib-devel gtk3-devel gtkmm30-devel libtirpc-devel rpcgen libtool-ltdl-devel
+
+## Get openvm-tools
+git clone https://github.com/vmware/open-vm-tools.git
+cd open-vm-tools/open-vm-tools/
+
+## compile open-vm-tools
+autoreconf -i
+./configure --disable-dependency-tracking
+make
+make install
+ldconfig
+
+## Create a unit file
+cat > /etc/systemd/system/vmtoolsd.service << EOF
+[Unit]
+Description=Service for virtual machines hosted on VMware
+Documentation=http://github.com/vmware/open-vm-tools
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/vmtoolsd
+Restart=always
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+## Enable and start the open-vm-tools
+systemctl enable vmtoolsd.service
+systemctl start vmtoolsd.service
+
+## Verify that it is runnng
+systemctl status vmtoolsd.service
